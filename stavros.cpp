@@ -1,3 +1,4 @@
+//{{{ Includes
 #include <SFML/Window.hpp>
 #include <iostream>
 using std::cerr;
@@ -5,11 +6,13 @@ using std::endl;
 #include <vector>
 using std::vector;
 #include <cmath>
+//}}}
 
 float f(float);
 void circle(float, float, float);
 float castFloat(int);
 
+//{{{ main
 int main()
 {
   sf::Window App(sf::VideoMode(512, 512, 32), "Stavros");
@@ -23,6 +26,7 @@ int main()
   float y1 = 2.;
   float ratio = (y1-y0)/(x1-x0);
 
+  //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glOrtho(x0, x1, y0, y1, 0, 1);
@@ -30,6 +34,7 @@ int main()
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glClearColor(0.f, 0.f, 0.f, 0.f);
+  //}}}
 
 
   // evaluate f(x) on a bunch of points
@@ -47,6 +52,7 @@ int main()
 
   while (App.IsOpened())
   {
+    //{{{ Event processing 
     sf::Event Event;
     while (App.GetEvent(Event))
     {
@@ -68,11 +74,12 @@ int main()
         else cerr << "something weird, windowRatio = " << windowRatio << ", width = " << width << ", height = " << height << endl; 
       }
     }
+    //}}}
 
     App.SetActive();
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // draw axes
+    //{{{ draw axes
     glBegin(GL_LINES);
     glColor3f(.7,.7,.7);
     glVertex2f(0.,-32.);
@@ -80,6 +87,7 @@ int main()
     glVertex2f(-32.,0.);
     glVertex2f(32.,0.);
     glEnd();
+    //}}}
 
 
     // draw f(x)
@@ -102,6 +110,7 @@ int main()
 
   return EXIT_SUCCESS;
 }
+//}}}
 
 float f(float x){
   return exp(-pow(x,2));
