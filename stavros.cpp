@@ -8,9 +8,20 @@ using std::vector;
 #include <cmath>
 //}}}
 
+struct Ball{
+  float m;
+  float r;
+  float x;
+  float y;
+  float vx;
+  float vy;
+  void draw();
+};
+
 float f(float);
 void circle(float, float, float);
 float castFloat(int);
+
 
 //{{{ main
 int main()
@@ -25,6 +36,17 @@ int main()
   float y0 = -2.;
   float y1 = 2.;
   float ratio = (y1-y0)/(x1-x0);
+
+  Ball b;
+  b.m = 1;
+  b.r = 0.2;
+  b.x = 1;
+  b.y = 1;
+  b.vx = -3.01;
+  b.vy = 1.55;
+
+  // coefficient of restitution
+  float c = .5;
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -105,12 +127,41 @@ int main()
 
     // cerr << 1/App.GetFrameTime() << endl;
 
+
+    // ball has hit the x axis
+    if (b.y - b.r <= 0){
+      b.vy = -b.vy*c;
+      b.y = b.r;
+    }
+    if (b.x - b.r <= 0){
+      b.vx = -b.vx*c;
+      b.x = b.r;
+    }
+    if (b.y + b.r >= 2){
+      b.vy = -b.vy*c;
+      b.y = 2 - b.r;
+    }
+    if (b.x + b.r >= 2){
+      b.vx = -b.vx*c;
+      b.x = 2 - b.r;
+    }
+
+
+    float dt = App.GetFrameTime();
+    b.x = b.x + dt * b.vx;
+    b.y = b.y + dt * b.vy;
+    b.draw();
+
     App.Display();
   }
 
   return EXIT_SUCCESS;
 }
 //}}}
+
+//{{{ Functions
+
+void Ball::draw(){circle(x,y,r);}
 
 float f(float x){
   return exp(-pow(x,2));
@@ -127,3 +178,5 @@ void circle(float x, float y, float r){
 }
 
 float castFloat(int i){return i;}
+
+//}}}
