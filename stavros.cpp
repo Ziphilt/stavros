@@ -10,27 +10,27 @@ using std::vector;
 
 //{{{ Declarations
 struct Vect{
-  float x;
-  float y;
+  double x;
+  double y;
   Vect negate();
-  void rotate(float);
-  float resultant();
+  void rotate(double);
+  double resultant();
 };
 
 struct Ball{
-  float m;
-  float r;
+  double m;
+  double r;
   Vect p;
   Vect v;
-  void draw(float, float, float);
-  void move(float);
+  void draw(double, double, double);
+  void move(double);
   void collideWalls();
 };
 
-float f(float);
-void circle(float, float, float);
-float castFloat(int);
-Vect fromPolar(float, float);
+double f(double);
+void circle(double, double, double);
+double castFloat(int);
+Vect fromPolar(double, double);
 Vect vectAdd(Vect, Vect);
 void elasticCollision(Ball&, Ball&);
 //}}}
@@ -43,25 +43,25 @@ int main()
   sf::Clock Clock;
 
   // set window coordinates
-  float x0 = 0.;
-  float x1 = 2.;
-  float y0 = 0.;
-  float y1 = 2.;
-  float ratio = (y1-y0)/(x1-x0);
+  double x0 = 0.;
+  double x1 = 2.;
+  double y0 = 0.;
+  double y1 = 2.;
+  double ratio = (y1-y0)/(x1-x0);
 
   Ball a;
-  a.m = 1;
+  a.m = 1.;
   a.r = 0.1;
   a.p.x = 0.4;
-  a.p.y = 1.1;
-  a.v.x = 0.;
+  a.p.y = 1.;
+  a.v.x = 1.;
   a.v.y = 0.;
 
   Ball b;
-  b.m = 9;
+  b.m = 9.;
   b.r = 0.3;
   b.p.x = 1.4;
-  b.p.y = 1;
+  b.p.y = 1.;
   b.v.x = -1.;
   b.v.y = 0.;
 
@@ -72,19 +72,19 @@ int main()
   glDisable(GL_DEPTH_TEST);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  glClearColor(0.f, 0.f, 0.f, 0.f);
+  glClearColor(0., 0., 0., 0.);
   //}}}
 
   /*
   // evaluate f(x) on a bunch of points
-  vector<float> xpoints;
-  vector<float> ypoints;
+  vector<double> xpoints;
+  vector<double> ypoints;
 
   int samples = 1000;
   for(int i = 0; i != samples; i++){
-    float a = castFloat(i)/castFloat(samples);
+    double a = castFloat(i)/castFloat(samples);
     // linear interpolation
-    float x = x0 * a + x1 * (1-a);
+    double x = x0 * a + x1 * (1-a);
     xpoints.push_back(x);
     ypoints.push_back(f(x));
   }
@@ -102,9 +102,9 @@ int main()
           App.Close();
       // keep aspect ratio
       if (Event.Type == sf::Event::Resized){
-        float height = Event.Size.Height;
-        float width  = Event.Size.Width;
-        float windowRatio = height / width;
+        double height = Event.Size.Height;
+        double width  = Event.Size.Width;
+        double windowRatio = height / width;
         if (windowRatio > ratio)
           glViewport(0, 0, width, width * ratio);
         else if (windowRatio < ratio)
@@ -121,11 +121,11 @@ int main()
 
     //{{{ draw axes
     glBegin(GL_LINES);
-    glColor3f(.7,.7,.7);
-    glVertex2f(0.,-32.);
-    glVertex2f(0.,32.);
-    glVertex2f(-32.,0.);
-    glVertex2f(32.,0.);
+    glColor3d(.7,.7,.7);
+    glVertex2d(0.,-32.);
+    glVertex2d(0.,32.);
+    glVertex2d(-32.,0.);
+    glVertex2d(32.,0.);
     glEnd();
     //}}}
 
@@ -133,31 +133,32 @@ int main()
     // draw f(x)
     glBegin(GL_LINE_STRIP);
     for(int i = 0; i != samples; i++){
-      float a = castFloat(i)/castFloat(samples);
-      glColor3f(1., 1-a, a);
-      glVertex2f(xpoints[i],ypoints[i]);
+      double a = castFloat(i)/castFloat(samples);
+      glColor3d(1., 1-a, a);
+      glVertex2d(xpoints[i],ypoints[i]);
     }
     glEnd();
 
     // draw a spinning circle
-    float time = Clock.GetElapsedTime();
+    double time = Clock.GetElapsedTime();
     circle(0.5*cos(time),0.5*sin(time),0.1);
     */
 
     // cerr << 1/App.GetFrameTime() << endl;
 
-    float dp = vectAdd(a.p, b.p.negate()).resultant();
+    double dp = vectAdd(a.p, b.p.negate()).resultant();
 
     if (dp < a.r + b.r){
-      cerr << "collision occured ";
+      cerr << "collision occured " << dp - a.r - b.r << endl;
       elasticCollision(a,b);
-      cerr << dp - a.r - b.r << endl;
+      dp = vectAdd(a.p, b.p.negate()).resultant();
+      cerr << "after collision   " << dp - a.r - b.r << endl;
     }
 
     a.collideWalls();
     b.collideWalls();
 
-    float dt = App.GetFrameTime();
+    double dt = App.GetFrameTime();
     a.move(dt);
     a.draw(0., 1., 0.);
     b.move(dt);
@@ -180,18 +181,18 @@ Vect Vect::negate(){
   return v;
 }
 
-void Vect::rotate(float t){
-  float x1 = x * cos(t) - y * sin(t);
-  float y1 = x * sin(t) + y * cos(t);
+void Vect::rotate(double t){
+  double x1 = x * cos(t) - y * sin(t);
+  double y1 = x * sin(t) + y * cos(t);
   x = x1;
   y = y1;
 }
 
-float Vect::resultant(){
+double Vect::resultant(){
   return sqrt(y*y + x*x);
 }
 
-Vect fromPolar(float r, float t){
+Vect fromPolar(double r, double t){
   Vect v;
   v.x = r * cos(t);
   v.y = r * sin(t);
@@ -207,19 +208,19 @@ Vect vectAdd(Vect a, Vect b){
 //}}}
 
 //{{{ Ball
-void Ball::draw(float red, float green, float blue){
-  glColor3f(red, green, blue);
+void Ball::draw(double red, double green, double blue){
+  glColor3d(red, green, blue);
   circle(p.x,p.y,r);
 }
 
-void Ball::move(float dt){
+void Ball::move(double dt){
   p.x = p.x + dt * v.x;
   p.y = p.y + dt * v.y;
 }
 
 void Ball::collideWalls(){
   // coefficient of restitution
-  float c = 1;
+  double c = 1;
   if (p.y - r <= 0){
       v.y = -v.y*c;
       p.y = r;
@@ -239,43 +240,40 @@ void Ball::collideWalls(){
 }
 
 void elasticCollision(Ball& a, Ball& b){
-  Vect dp;
-  dp.x = b.p.x - a.p.x;
-  dp.y = b.p.y - a.p.y;
-  float tc = atan2(dp.y, dp.x);
+  Vect dp = vectAdd(a.p.negate(), b.p);
+  double tc = atan2(dp.y, dp.x);
   a.v.rotate(-tc);
   b.v.rotate(-tc);
-  float M = a.m + b.m;
-  float avf = (a.v.x * (a.m - b.m) + 2 * b.m * b.v.x) / M;
-  float bvf = (b.v.x * (b.m - a.m) + 2 * a.m * a.v.x) / M;
+  double M = a.m + b.m;
+  double avf = (a.v.x * (a.m - b.m) + 2 * b.m * b.v.x) / M;
+  double bvf = (b.v.x * (b.m - a.m) + 2 * a.m * a.v.x) / M;
   a.v.x = avf;
   b.v.x = bvf;
   a.v.rotate(tc);
   b.v.rotate(tc);
-  /* intended to move the balls apart
-   * it doesn't work
-  float d = sqrt(dp.y*dp.y + dp.x*dp.x) - a.r - b.r;
+  // move the balls apart
+  double d = dp.resultant() - a.r - b.r;
   Vect adjust;
-  adjust = fromPolar(d, tc);
-  b.p.x += adjust.x*2;
-  b.p.y += adjust.y*2; */
+  adjust = fromPolar(-d, tc);
+  b.p.x += adjust.x;
+  b.p.y += adjust.y; 
 }
 //}}}
 
-float f(float x){
+double f(double x){
   return exp(-pow(x,2));
 }
 
-void circle(float x, float y, float r){
-//  glColor3f(8., .4, 0.);
+void circle(double x, double y, double r){
+//  glColor3d(8., .4, 0.);
   glBegin(GL_POLYGON);
   for(int t = 0; t != 32; t++){
-    float a = t * 0.19635;
-    glVertex2f(x+r*cos(a),y+r*sin(a));
+    double a = t * 0.19635;
+    glVertex2d(x+r*cos(a),y+r*sin(a));
   }
   glEnd();
 }
 
-float castFloat(int i){return i;}
+double castFloat(int i){return i;}
 
 //}}}
