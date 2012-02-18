@@ -8,22 +8,31 @@ using std::vector;
 #include <cmath>
 //}}}
 
+struct Vect{
+  float x;
+  float y;
+  void negate();
+  void rotate(float);
+};
+
 struct Ball{
   float m;
   float r;
-  float x;
-  float y;
-  float vx;
-  float vy;
+  Vect p;
+  Vect v;
   void draw();
+  void move(float);
+  void collideWalls();
 };
 
 float f(float);
 void circle(float, float, float);
 float castFloat(int);
+Vect fromPolar(float, float);
+void elasticCollision(Ball&, Ball&);
 
 
-//{{{ main
+//{{{ Main
 int main()
 {
   sf::Window App(sf::VideoMode(512, 512, 32), "Stavros");
@@ -40,13 +49,19 @@ int main()
   Ball b;
   b.m = 1;
   b.r = 0.2;
-  b.x = 1;
-  b.y = 1;
-  b.vx = -3.01;
-  b.vy = 1.55;
+  b.p.x = 1.4;
+  b.p.y = 1;
+  b.v.x = -1.01;
+  b.v.y = 1.55;
 
-  // coefficient of restitution
-  float c = .5;
+  Ball a;
+  a.m = 1;
+  a.r = 0.2;
+  a.p.x = 0.4;
+  a.p.y = 0.3;
+  a.v.x = 1.01;
+  a.v.y = 0.55;
+
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -127,30 +142,22 @@ int main()
 
     // cerr << 1/App.GetFrameTime() << endl;
 
+    float dp = sqrt(pow((b.p.x - a.p.x),2) + pow((b.p.y - a.p.y),2));
+    // cerr << "dp = " << dp << endl;
 
-    // ball has hit the x axis
-    if (b.y - b.r <= 0){
-      b.vy = -b.vy*c;
-      b.y = b.r;
-    }
-    if (b.x - b.r <= 0){
-      b.vx = -b.vx*c;
-      b.x = b.r;
-    }
-    if (b.y + b.r >= 2){
-      b.vy = -b.vy*c;
-      b.y = 2 - b.r;
-    }
-    if (b.x + b.r >= 2){
-      b.vx = -b.vx*c;
-      b.x = 2 - b.r;
+    if (dp < a.r + b.r){
+      cerr << "collision occured" << endl;
+      elasticCollision(a,b);
     }
 
+    a.collideWalls();
+    b.collideWalls();
 
     float dt = App.GetFrameTime();
-    b.x = b.x + dt * b.vx;
-    b.y = b.y + dt * b.vy;
+    b.move(dt);
     b.draw();
+    a.move(dt);
+    a.draw();
 
     App.Display();
   }
@@ -161,15 +168,85 @@ int main()
 
 //{{{ Functions
 
-void Ball::draw(){circle(x,y,r);}
+//{{{ Vect
+void Vect::negate(){
+  x = -x;
+  y = -y;
+}
+
+void Vect::rotate(float t){
+  float x1 = x * cos(t) - y * sin(t);
+  float y1 = x * sin(t) + y * cos(t);
+  x = x1;
+  y = y1;
+}
+
+Vect fromPolar(float r, float t){
+  Vect v;
+  v.x = r * cos(t);
+  v.y = r * sin(t);
+  return v;
+}
+//}}}
+
+//{{{ Ball
+void Ball::draw(){circle(p.x,p.y,r);}
+
+void Ball::move(float dt){
+  p.x = p.x + dt * v.x;
+  p.y = p.y + dt * v.y;
+}
+
+void Ball::collideWalls(){
+  // coefficient of restitution
+  float c = 1;
+  if (p.y - r <= 0){
+      v.y = -v.y*c;
+      p.y = r;
+  }
+  if (p.x - r <= 0){
+    v.x = -v.x*c;
+    p.x = r;
+  }
+  if (p.y + r >= 2){
+    v.y = -v.y*c;
+    p.y = 2 - r;
+  }
+  if (p.x + r >= 2){
+    v.x = -v.x*c;
+    p.x = 2 - r;
+  }
+}
+
+void elasticCollision(Ball& a, Ball& b){
+  Vect dp;
+  dp.x = b.p.x - a.p.x;
+  dp.y = b.p.y - a.p.y;
+  float tc = atan2(dp.y, dp.x);
+  a.v.rotate(-tc);
+  b.v.rotate(-tc);
+  float M = a.m + b.m;
+  float avf = (a.v.x * (a.m - b.m) + 2 * b.m * b.v.x) / M;
+  float bvf = (b.v.x * (b.m - a.m) + 2 * a.m * a.v.x) / M;
+  a.v.x = avf;
+  b.v.x = bvf;
+  a.v.rotate(tc);
+  b.v.rotate(tc);
+  float d = sqrt(dp.y*dp.y + dp.x*dp.x) - a.r - b.r;
+  Vect adjust;
+  adjust = fromPolar(d, tc);
+  b.p.x += adjust.x*1.1;
+  b.p.y += adjust.y*1.1;
+}
+//}}}
 
 float f(float x){
   return exp(-pow(x,2));
 }
 
 void circle(float x, float y, float r){
-  glColor3f(1., .5, 0.);
-  glBegin(GL_LINE_LOOP);
+  glColor3f(8., .4, 0.);
+  glBegin(GL_POLYGON);
   for(int t = 0; t != 32; t++){
     float a = t * 0.19635;
     glVertex2f(x+r*cos(a),y+r*sin(a));
