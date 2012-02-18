@@ -1,5 +1,5 @@
 //{{{ Includes
-#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -8,11 +8,13 @@ using std::vector;
 #include <cmath>
 //}}}
 
+//{{{ Declarations
 struct Vect{
   float x;
   float y;
-  void negate();
+  Vect negate();
   void rotate(float);
+  float resultant();
 };
 
 struct Ball{
@@ -20,7 +22,7 @@ struct Ball{
   float r;
   Vect p;
   Vect v;
-  void draw();
+  void draw(float, float, float);
   void move(float);
   void collideWalls();
 };
@@ -29,39 +31,39 @@ float f(float);
 void circle(float, float, float);
 float castFloat(int);
 Vect fromPolar(float, float);
+Vect vectAdd(Vect, Vect);
 void elasticCollision(Ball&, Ball&);
-
+//}}}
 
 //{{{ Main
 int main()
 {
   sf::Window App(sf::VideoMode(512, 512, 32), "Stavros");
-  App.SetFramerateLimit(30);
+  App.SetFramerateLimit(100);
   sf::Clock Clock;
 
   // set window coordinates
-  float x0 = -2.;
+  float x0 = 0.;
   float x1 = 2.;
-  float y0 = -2.;
+  float y0 = 0.;
   float y1 = 2.;
   float ratio = (y1-y0)/(x1-x0);
 
-  Ball b;
-  b.m = 1;
-  b.r = 0.2;
-  b.p.x = 1.4;
-  b.p.y = 1;
-  b.v.x = -1.01;
-  b.v.y = 1.55;
-
   Ball a;
   a.m = 1;
-  a.r = 0.2;
+  a.r = 0.1;
   a.p.x = 0.4;
-  a.p.y = 0.3;
-  a.v.x = 1.01;
-  a.v.y = 0.55;
+  a.p.y = 1.1;
+  a.v.x = 0.;
+  a.v.y = 0.;
 
+  Ball b;
+  b.m = 9;
+  b.r = 0.3;
+  b.p.x = 1.4;
+  b.p.y = 1;
+  b.v.x = -1.;
+  b.v.y = 0.;
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -73,7 +75,7 @@ int main()
   glClearColor(0.f, 0.f, 0.f, 0.f);
   //}}}
 
-
+  /*
   // evaluate f(x) on a bunch of points
   vector<float> xpoints;
   vector<float> ypoints;
@@ -86,6 +88,7 @@ int main()
     xpoints.push_back(x);
     ypoints.push_back(f(x));
   }
+  */
 
   while (App.IsOpened())
   {
@@ -126,7 +129,7 @@ int main()
     glEnd();
     //}}}
 
-
+    /*
     // draw f(x)
     glBegin(GL_LINE_STRIP);
     for(int i = 0; i != samples; i++){
@@ -137,27 +140,28 @@ int main()
     glEnd();
 
     // draw a spinning circle
-    float time = Clock.GetElapsedTime() /* * 6.2832 */;
+    float time = Clock.GetElapsedTime();
     circle(0.5*cos(time),0.5*sin(time),0.1);
+    */
 
     // cerr << 1/App.GetFrameTime() << endl;
 
-    float dp = sqrt(pow((b.p.x - a.p.x),2) + pow((b.p.y - a.p.y),2));
-    // cerr << "dp = " << dp << endl;
+    float dp = vectAdd(a.p, b.p.negate()).resultant();
 
     if (dp < a.r + b.r){
-      cerr << "collision occured" << endl;
+      cerr << "collision occured ";
       elasticCollision(a,b);
+      cerr << dp - a.r - b.r << endl;
     }
 
     a.collideWalls();
     b.collideWalls();
 
     float dt = App.GetFrameTime();
-    b.move(dt);
-    b.draw();
     a.move(dt);
-    a.draw();
+    a.draw(0., 1., 0.);
+    b.move(dt);
+    b.draw(1., 0., 0.);
 
     App.Display();
   }
@@ -169,9 +173,11 @@ int main()
 //{{{ Functions
 
 //{{{ Vect
-void Vect::negate(){
-  x = -x;
-  y = -y;
+Vect Vect::negate(){
+  Vect v;
+  v.x = -x;
+  v.y = -y;
+  return v;
 }
 
 void Vect::rotate(float t){
@@ -181,16 +187,30 @@ void Vect::rotate(float t){
   y = y1;
 }
 
+float Vect::resultant(){
+  return sqrt(y*y + x*x);
+}
+
 Vect fromPolar(float r, float t){
   Vect v;
   v.x = r * cos(t);
   v.y = r * sin(t);
   return v;
 }
+
+Vect vectAdd(Vect a, Vect b){
+  Vect v;
+  v.x = a.x + b.x;
+  v.y = a.y + b.y;
+  return v;
+}
 //}}}
 
 //{{{ Ball
-void Ball::draw(){circle(p.x,p.y,r);}
+void Ball::draw(float red, float green, float blue){
+  glColor3f(red, green, blue);
+  circle(p.x,p.y,r);
+}
 
 void Ball::move(float dt){
   p.x = p.x + dt * v.x;
@@ -232,11 +252,13 @@ void elasticCollision(Ball& a, Ball& b){
   b.v.x = bvf;
   a.v.rotate(tc);
   b.v.rotate(tc);
+  /* intended to move the balls apart
+   * it doesn't work
   float d = sqrt(dp.y*dp.y + dp.x*dp.x) - a.r - b.r;
   Vect adjust;
   adjust = fromPolar(d, tc);
-  b.p.x += adjust.x*1.1;
-  b.p.y += adjust.y*1.1;
+  b.p.x += adjust.x*2;
+  b.p.y += adjust.y*2; */
 }
 //}}}
 
@@ -245,7 +267,7 @@ float f(float x){
 }
 
 void circle(float x, float y, float r){
-  glColor3f(8., .4, 0.);
+//  glColor3f(8., .4, 0.);
   glBegin(GL_POLYGON);
   for(int t = 0; t != 32; t++){
     float a = t * 0.19635;
