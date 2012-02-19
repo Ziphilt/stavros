@@ -1,4 +1,4 @@
 Stavros, a physics/graphics/game project by Cal Stepanian
 
 compile with
-  g++ stavros.cpp -o stavros -O2 -Wall -Wextra -std=c++0x -pedantic -lsfml-graphics -lsfml-window -lsfml-system
+  g++ stavros.cpp -o stavros -O2 -Wall -Wextra -std=c++0x -pedantic -lsfml-graphics -lsfml-window -lsfml-system -lGL -lGLU
