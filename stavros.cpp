@@ -10,11 +10,10 @@ using std::vector;
 
 //{{{ Declarations
 struct Vect{
+  Vect();
+  Vect(double, double);
   double x;
   double y;
-  Vect negate();
-  void rotate(double);
-  double resultant();
 };
 
 struct Ball{
@@ -30,8 +29,12 @@ struct Ball{
 double f(double);
 void circle(double, double, double);
 double castFloat(int);
+
 Vect fromPolar(double, double);
-Vect vectAdd(Vect, Vect);
+Vect vectAdd(const Vect&, const Vect&);
+Vect negate(const Vect&);
+Vect rotate(const Vect&, double);
+double resultant(const Vect&);
 void elasticCollision(Ball&, Ball&);
 //}}}
 
@@ -61,14 +64,14 @@ int main()
   b.m = 9.;
   b.r = 0.3;
   b.p.x = 1.4;
-  b.p.y = 1.;
+  b.p.y = 1.01;
   b.v.x = -1.;
   b.v.y = 0.;
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(x0, x1, y0, y1, 0, 1);
+  gluOrtho2D(x0, x1, y0, y1);
   glDisable(GL_DEPTH_TEST);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
@@ -146,12 +149,12 @@ int main()
 
     // cerr << 1/App.GetFrameTime() << endl;
 
-    double dp = vectAdd(a.p, b.p.negate()).resultant();
+    double dp = resultant(vectAdd(b.p, negate(a.p)));
 
     if (dp < a.r + b.r){
       cerr << "collision occured " << dp - a.r - b.r << endl;
       elasticCollision(a,b);
-      dp = vectAdd(a.p, b.p.negate()).resultant();
+      dp = resultant(vectAdd(b.p, negate(a.p)));
       cerr << "after collision   " << dp - a.r - b.r << endl;
     }
 
@@ -174,36 +177,32 @@ int main()
 //{{{ Functions
 
 //{{{ Vect
-Vect Vect::negate(){
-  Vect v;
-  v.x = -x;
-  v.y = -y;
-  return v;
+Vect::Vect(): x(0), y(0){}
+
+Vect::Vect(double xi, double yi): x(xi), y(yi){}
+
+Vect negate(const Vect& v){
+  Vect a(-v.x, -v.y);
+  return a;
 }
 
-void Vect::rotate(double t){
-  double x1 = x * cos(t) - y * sin(t);
-  double y1 = x * sin(t) + y * cos(t);
-  x = x1;
-  y = y1;
+Vect rotate(const Vect& v, double t){
+  Vect a(v.x * cos(t) - v.y * sin(t), v.x * sin(t) + v.y * cos(t));
+  return a;
 }
 
-double Vect::resultant(){
-  return sqrt(y*y + x*x);
+double resultant(const Vect& v){
+  return sqrt(v.y*v.y + v.x*v.x);
 }
 
 Vect fromPolar(double r, double t){
-  Vect v;
-  v.x = r * cos(t);
-  v.y = r * sin(t);
-  return v;
+  Vect a(r * cos(t), r * sin(t));
+  return a;
 }
 
-Vect vectAdd(Vect a, Vect b){
-  Vect v;
-  v.x = a.x + b.x;
-  v.y = a.y + b.y;
-  return v;
+Vect vectAdd(const Vect& v0, const Vect& v1){
+  Vect a(v0.x + v1.x, v0.y + v1.y);
+  return a;
 }
 //}}}
 
@@ -220,7 +219,7 @@ void Ball::move(double dt){
 
 void Ball::collideWalls(){
   // coefficient of restitution
-  double c = 1;
+  double c = 0.9;
   if (p.y - r <= 0){
       v.y = -v.y*c;
       p.y = r;
@@ -240,23 +239,21 @@ void Ball::collideWalls(){
 }
 
 void elasticCollision(Ball& a, Ball& b){
-  Vect dp = vectAdd(a.p.negate(), b.p);
+  Vect dp = vectAdd(b.p, negate(a.p));
   double tc = atan2(dp.y, dp.x);
-  a.v.rotate(-tc);
-  b.v.rotate(-tc);
+  a.v = rotate(a.v, -tc);
+  b.v = rotate(b.v, -tc);
   double M = a.m + b.m;
   double avf = (a.v.x * (a.m - b.m) + 2 * b.m * b.v.x) / M;
   double bvf = (b.v.x * (b.m - a.m) + 2 * a.m * a.v.x) / M;
   a.v.x = avf;
   b.v.x = bvf;
-  a.v.rotate(tc);
-  b.v.rotate(tc);
+  a.v = rotate(a.v, tc);
+  b.v = rotate(b.v, tc);
   // move the balls apart
-  double d = dp.resultant() - a.r - b.r;
-  Vect adjust;
-  adjust = fromPolar(-d, tc);
-  b.p.x += adjust.x;
-  b.p.y += adjust.y; 
+  double d = resultant(dp) - a.r - b.r;
+  Vect adjust = fromPolar(-d, tc);
+  b.p = vectAdd(b.p, adjust);
 }
 //}}}
 
