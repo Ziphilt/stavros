@@ -53,20 +53,20 @@ int main()
   double ratio = (y1-y0)/(x1-x0);
 
   Ball a;
-  a.m = 1.;
-  a.r = 0.1;
+  a.m = 2.;
+  a.r = 0.2;
   a.p.x = 0.4;
   a.p.y = 1.;
-  a.v.x = 1.;
-  a.v.y = 0.;
+  a.v.x = 1.1;
+  a.v.y = -0.1;
 
   Ball b;
-  b.m = 9.;
-  b.r = 0.3;
+  b.m = 5.;
+  b.r = 0.2;
   b.p.x = 1.4;
-  b.p.y = 1.01;
+  b.p.y = 1.;
   b.v.x = -1.;
-  b.v.y = 0.;
+  b.v.y = -0.1;
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -151,11 +151,14 @@ int main()
 
     double dp = resultant(vectAdd(b.p, negate(a.p)));
 
+    double ke = (a.m * (pow(resultant(a.v),2)) + b.m * (pow(resultant(b.v),2))) / 2;
+    cerr << ke << endl;
+
     if (dp < a.r + b.r){
-      cerr << "collision occured " << dp - a.r - b.r << endl;
+      //cerr << "collision occured " << dp - a.r - b.r << endl;
       elasticCollision(a,b);
       dp = resultant(vectAdd(b.p, negate(a.p)));
-      cerr << "after collision   " << dp - a.r - b.r << endl;
+      //cerr << "after collision   " << dp - a.r - b.r << endl;
     }
 
     a.collideWalls();
@@ -219,7 +222,7 @@ void Ball::move(double dt){
 
 void Ball::collideWalls(){
   // coefficient of restitution
-  double c = 1;
+  double c = 0.9;
   if (p.y - r <= 0){
       v.y = -v.y*c;
       p.y = r;
@@ -244,8 +247,9 @@ void elasticCollision(Ball& a, Ball& b){
   a.v = rotate(a.v, -tc);
   b.v = rotate(b.v, -tc);
   double M = a.m + b.m;
-  double avf = (a.v.x * (a.m - b.m) + 2 * b.m * b.v.x) / M;
-  double bvf = (b.v.x * (b.m - a.m) + 2 * a.m * a.v.x) / M;
+  double c = 0.9;
+  double avf = (a.m*a.v.x + b.m*b.v.x + b.m*c*(b.v.x - a.v.x)) / M;
+  double bvf = (b.m*b.v.x + a.m*a.v.x + a.m*c*(a.v.x - b.v.x)) / M;
   a.v.x = avf;
   b.v.x = bvf;
   a.v = rotate(a.v, tc);
