@@ -219,7 +219,7 @@ void Ball::move(double dt){
 
 void Ball::collideWalls(){
   // coefficient of restitution
-  double c = 0.9;
+  double c = 1;
   if (p.y - r <= 0){
       v.y = -v.y*c;
       p.y = r;
@@ -252,8 +252,10 @@ void elasticCollision(Ball& a, Ball& b){
   b.v = rotate(b.v, tc);
   // move the balls apart
   double d = resultant(dp) - a.r - b.r;
-  Vect adjust = fromPolar(-d, tc);
-  b.p = vectAdd(b.p, adjust);
+  Vect adjust_a = fromPolar(d * b.m / M, tc);
+  Vect adjust_b = fromPolar(-d * a.m / M, tc);
+  a.p = vectAdd(a.p, adjust_a);
+  b.p = vectAdd(b.p, adjust_b);
 }
 //}}}
 
@@ -264,8 +266,8 @@ double f(double x){
 void circle(double x, double y, double r){
 //  glColor3d(8., .4, 0.);
   glBegin(GL_POLYGON);
-  for(int t = 0; t != 32; t++){
-    double a = t * 0.19635;
+  for(int t = 0; t != 64; t++){
+    double a = t * 0.098175;
     glVertex2d(x+r*cos(a),y+r*sin(a));
   }
   glEnd();
