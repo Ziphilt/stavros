@@ -35,7 +35,7 @@ Vect vectAdd(const Vect&, const Vect&);
 Vect negate(const Vect&);
 Vect rotate(const Vect&, double);
 double resultant(const Vect&);
-void elasticCollision(Ball&, Ball&);
+void collision(Ball&, Ball&);
 //}}}
 
 //{{{ Main
@@ -133,7 +133,7 @@ int main()
     glEnd();
     //}}}
 
-    /*
+    /*{{{ function drawy stuff
     // draw f(x)
     glBegin(GL_LINE_STRIP);
     for(int i = 0; i != samples; i++){
@@ -146,7 +146,7 @@ int main()
     // draw a spinning circle
     double time = Clock.GetElapsedTime();
     circle(0.5*cos(time),0.5*sin(time),0.1);
-    */
+    }}}*/
 
     // cerr << 1/App.GetFrameTime() << endl;
 
@@ -157,7 +157,7 @@ int main()
 
     if (dp < a.r + b.r){
       //cerr << "collision occured " << dp - a.r - b.r << endl;
-      elasticCollision(a,b);
+      collision(a,b);
       dp = resultant(vectAdd(b.p, negate(a.p)));
       //cerr << "after collision   " << dp - a.r - b.r << endl;
     }
@@ -249,7 +249,7 @@ void Ball::collideWalls(){
   }
 }
 
-void elasticCollision(Ball& a, Ball& b){
+void collision(Ball& a, Ball& b){
   Vect dp = vectAdd(b.p, negate(a.p));
   double tc = atan2(dp.y, dp.x);
   a.v = rotate(a.v, -tc);
