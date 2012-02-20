@@ -55,15 +55,15 @@ int main()
   Ball a;
   a.m = 2.;
   a.r = 0.2;
-  a.p.x = 0.2;
-  a.p.y = 1.;
-  a.v.x = 1.;
-  a.v.y = 1.;
+  a.p.x = 0.5;
+  a.p.y = 0.2;
+  a.v.x = 0.;
+  a.v.y = 0.;
 
   Ball b;
   b.m = 5.;
   b.r = 0.2;
-  b.p.x = 1.4;
+  b.p.x = 0.5;
   b.p.y = 1.;
   b.v.x = 0.;
   b.v.y = 0.;
@@ -228,8 +228,10 @@ void Ball::collideWalls(){
   // coefficient of restitution
   double c = 0.9;
   if (p.y - r <= 0){
-      v.y = -v.y*c;
-      p.y = r;
+    if (abs(v.y) <= 0.001)
+      v.y = 0;
+    else v.y = -v.y*c;
+    p.y = r;
   }
   if (p.x - r <= 0){
     v.x = -v.x*c;
