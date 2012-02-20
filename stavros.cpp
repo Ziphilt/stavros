@@ -55,7 +55,7 @@ int main()
   Ball a;
   a.m = 2.;
   a.r = 0.2;
-  a.p.x = 0.5;
+  a.p.x = 0.3;
   a.p.y = 0.2;
   a.v.x = 0.;
   a.v.y = 0.;
@@ -63,7 +63,7 @@ int main()
   Ball b;
   b.m = 5.;
   b.r = 0.2;
-  b.p.x = 0.5;
+  b.p.x = 1.7;
   b.p.y = 1.;
   b.v.x = 0.;
   b.v.y = 0.;
@@ -78,7 +78,7 @@ int main()
   glClearColor(0., 0., 0., 0.);
   //}}}
 
-  /*
+  /*{{{ function plotty stuff
   // evaluate f(x) on a bunch of points
   vector<double> xpoints;
   vector<double> ypoints;
@@ -91,7 +91,7 @@ int main()
     xpoints.push_back(x);
     ypoints.push_back(f(x));
   }
-  */
+  }}}*/
 
   //{{{ Main Loop
   while (App.IsOpened())
@@ -218,10 +218,12 @@ void Ball::draw(double red, double green, double blue){
 }
 
 void Ball::move(double dt){
-  double g = -9.;
-  p.x = p.x + dt * v.x;
-  p.y = p.y + dt * v.y + dt*dt*g/2;
-  v.y = v.y + dt * g;
+  double g = -9.; // gravitational constant
+  double c = 0.2;  // friction coefficient
+  p.x = p.x + dt * v.x - dt*dt*c*v.x/2;
+  v.x = v.x - dt * c*v.x;
+  p.y = p.y + dt * v.y + dt*dt*(g - c*v.y)/2;
+  v.y = v.y + dt * (g - c*v.y);
 }
 
 void Ball::collideWalls(){
