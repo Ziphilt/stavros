@@ -55,18 +55,18 @@ int main()
   Ball a;
   a.m = 2.;
   a.r = 0.2;
-  a.p.x = 0.4;
+  a.p.x = 0.2;
   a.p.y = 1.;
-  a.v.x = 1.1;
-  a.v.y = -0.1;
+  a.v.x = 1.;
+  a.v.y = 1.;
 
   Ball b;
   b.m = 5.;
   b.r = 0.2;
   b.p.x = 1.4;
   b.p.y = 1.;
-  b.v.x = -1.;
-  b.v.y = -0.1;
+  b.v.x = 0.;
+  b.v.y = 0.;
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -93,6 +93,7 @@ int main()
   }
   */
 
+  //{{{ Main Loop
   while (App.IsOpened())
   {
     //{{{ Event processing 
@@ -172,6 +173,7 @@ int main()
 
     App.Display();
   }
+  //}}}
 
   return EXIT_SUCCESS;
 }
@@ -216,8 +218,10 @@ void Ball::draw(double red, double green, double blue){
 }
 
 void Ball::move(double dt){
+  double g = -9.;
   p.x = p.x + dt * v.x;
-  p.y = p.y + dt * v.y;
+  p.y = p.y + dt * v.y + dt*dt*g/2;
+  v.y = v.y + dt * g;
 }
 
 void Ball::collideWalls(){
