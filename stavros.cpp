@@ -17,6 +17,8 @@ struct Vect{
 };
 
 struct Ball{
+  Ball();
+  Ball(double,double,double,double,double,double);
   double m;
   double r;
   Vect p;
@@ -36,6 +38,9 @@ Vect negate(const Vect&);
 Vect rotate(const Vect&, double);
 double resultant(const Vect&);
 void collision(Ball&, Ball&);
+//#define elasticOn
+#define gravityOn
+#define frictionOn
 //}}}
 
 //{{{ Main
@@ -51,22 +56,11 @@ int main()
   double y0 = 0.;
   double y1 = 2.;
   double ratio = (y1-y0)/(x1-x0);
-
-  Ball a;
-  a.m = 2.;
-  a.r = 0.2;
-  a.p.x = 0.3;
-  a.p.y = 0.2;
-  a.v.x = 0.;
-  a.v.y = 0.;
-
-  Ball b;
-  b.m = 5.;
-  b.r = 0.2;
-  b.p.x = 1.7;
-  b.p.y = 1.;
-  b.v.x = 0.;
-  b.v.y = 0.;
+                           //m,r,  p,      v
+  vector<Ball> balls = {Ball(1,0.1,1.1,1.1,1,-1), Ball(1,0.1,1.3,1.3,1,-1), Ball(1,0.1,1.5,1.5,1,-1), Ball(1,0.1,1.7,1.7,1,-1),
+                        Ball(1,0.1,1.1,0.9,1,-1), Ball(1,0.1,1.3,0.7,1,-1), Ball(1,0.1,1.5,0.5,1,-1), Ball(1,0.1,0.3,0.3,1,-1),
+                        Ball(1,0.05,0.3,0.3,-1,1), Ball(1,0.05,0.5,0.5,-1,1), Ball(1,0.05,0.7,0.7,-1,1), Ball(1,0.05,0.9,0.9,-1,1),
+                        Ball(10,0.2,0.5,1.5,0.3,-0.3)};
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -149,27 +143,22 @@ int main()
     }}}*/
 
     // cerr << 1/App.GetFrameTime() << endl;
-
-    double dp = resultant(vectAdd(b.p, negate(a.p)));
-
-    double ke = (a.m * (pow(resultant(a.v),2)) + b.m * (pow(resultant(b.v),2))) / 2;
-    cerr << ke << endl;
-
-    if (dp < a.r + b.r){
-      //cerr << "collision occured " << dp - a.r - b.r << endl;
-      collision(a,b);
-      dp = resultant(vectAdd(b.p, negate(a.p)));
-      //cerr << "after collision   " << dp - a.r - b.r << endl;
-    }
-
-    a.collideWalls();
-    b.collideWalls();
-
     double dt = App.GetFrameTime();
-    a.move(dt);
-    a.draw(0., 1., 0.);
-    b.move(dt);
-    b.draw(1., 0., 0.);
+    for(vector<Ball>::iterator j=balls.begin();j!=balls.end();j++){
+      //int i = std::distance(balls.begin(),p);
+      //cerr << i << j->m << endl;
+      for(vector<Ball>::iterator q=balls.begin();q!=balls.end();q++){
+        if (j != q){ // if they are not the same ball
+          double dp = resultant(vectAdd(q->p, negate(j->p)));
+          if (dp < j->r + q->r){
+            collision(*j,*q);
+          }
+        }
+      }
+      j->collideWalls();
+      j->move(dt);
+      j->draw(0.5,0.6,0.9);
+    }
 
     App.Display();
   }
@@ -212,14 +201,24 @@ Vect vectAdd(const Vect& v0, const Vect& v1){
 //}}}
 
 //{{{ Ball
+Ball::Ball(){}
+Ball::Ball(double mi,double ri,double px,double py,double vx,double vy): m(mi),r(ri),p(px,py),v(vx,vy) {}
 void Ball::draw(double red, double green, double blue){
   glColor3d(red, green, blue);
   circle(p.x,p.y,r);
 }
 
 void Ball::move(double dt){
-  double g = -9.; // gravitational constant
-  double c = 0.2;  // friction coefficient
+  #ifdef gravityOn
+  double g = -2.; // gravitational constant
+  #else
+  double g = 0.;
+  #endif
+  #ifdef frictionOn
+  double c = 1.;  // friction coefficient
+  #else
+  double c = 0.;
+  #endif
   p.x = p.x + dt * v.x - dt*dt*c*v.x/2;
   v.x = v.x - dt * c*v.x;
   p.y = p.y + dt * v.y + dt*dt*(g - c*v.y)/2;
@@ -228,11 +227,18 @@ void Ball::move(double dt){
 
 void Ball::collideWalls(){
   // coefficient of restitution
+  #ifdef elasticOn
+  double c = 1;
+  #else
   double c = 0.9;
+  #endif
   if (p.y - r <= 0){
-    if (abs(v.y) <= 0.001)
-      v.y = 0;
-    else v.y = -v.y*c;
+    /*#ifdef gravityOn
+      if (abs(v.y) <= 0.001)
+        v.y = 0;
+      else v.y = -v.y*c;
+    //#endif*/
+    v.y = -v.y*c;
     p.y = r;
   }
   if (p.x - r <= 0){
@@ -255,7 +261,11 @@ void collision(Ball& a, Ball& b){
   a.v = rotate(a.v, -tc);
   b.v = rotate(b.v, -tc);
   double M = a.m + b.m;
+  #ifdef elasticOn
+  double c = 1;
+  #else
   double c = 0.9;
+  #endif
   double avf = (a.m*a.v.x + b.m*b.v.x + b.m*c*(b.v.x - a.v.x)) / M;
   double bvf = (b.m*b.v.x + a.m*a.v.x + a.m*c*(a.v.x - b.v.x)) / M;
   a.v.x = avf;
@@ -286,5 +296,4 @@ void circle(double x, double y, double r){
 }
 
 double castFloat(int i){return i;}
-
 //}}}
