@@ -28,7 +28,7 @@ struct Ball{
   void collideWalls();
 };
 
-double f(double);
+double lin(double, double, double);
 void circle(double, double, double);
 double castFloat(int);
 
@@ -38,15 +38,15 @@ Vect negate(const Vect&);
 Vect rotate(const Vect&, double);
 double resultant(const Vect&);
 void collision(Ball&, Ball&);
-//#define elasticOn
-#define gravityOn
-#define frictionOn
+#define elasticOn
+//#define gravityOn
+//#define frictionOn
 //}}}
 
 //{{{ Main
 int main()
 {
-  sf::Window App(sf::VideoMode(512, 512, 32), "Stavros");
+  sf::Window App(sf::VideoMode(700, 700, 32), "Stavros");
   App.SetFramerateLimit(100);
   sf::Clock Clock;
 
@@ -60,7 +60,7 @@ int main()
   vector<Ball> balls = {Ball(1,0.1,1.1,1.1,1,-1), Ball(1,0.1,1.3,1.3,1,-1), Ball(1,0.1,1.5,1.5,1,-1), Ball(1,0.1,1.7,1.7,1,-1),
                         Ball(1,0.1,1.1,0.9,1,-1), Ball(1,0.1,1.3,0.7,1,-1), Ball(1,0.1,1.5,0.5,1,-1), Ball(1,0.1,0.3,0.3,1,-1),
                         Ball(1,0.05,0.3,0.3,-1,1), Ball(1,0.05,0.5,0.5,-1,1), Ball(1,0.05,0.7,0.7,-1,1), Ball(1,0.05,0.9,0.9,-1,1),
-                        Ball(10,0.2,0.5,1.5,0.3,-0.3)};
+                        /*Ball(10,0.2,0.5,1.5,0.3,-0.3)*/};
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -71,21 +71,6 @@ int main()
   glLoadIdentity();
   glClearColor(0., 0., 0., 0.);
   //}}}
-
-  /*{{{ function plotty stuff
-  // evaluate f(x) on a bunch of points
-  vector<double> xpoints;
-  vector<double> ypoints;
-
-  int samples = 1000;
-  for(int i = 0; i != samples; i++){
-    double a = castFloat(i)/castFloat(samples);
-    // linear interpolation
-    double x = x0 * a + x1 * (1-a);
-    xpoints.push_back(x);
-    ypoints.push_back(f(x));
-  }
-  }}}*/
 
   //{{{ Main Loop
   while (App.IsOpened())
@@ -127,21 +112,6 @@ int main()
     glEnd();
     //}}}
 
-    /*{{{ function drawy stuff
-    // draw f(x)
-    glBegin(GL_LINE_STRIP);
-    for(int i = 0; i != samples; i++){
-      double a = castFloat(i)/castFloat(samples);
-      glColor3d(1., 1-a, a);
-      glVertex2d(xpoints[i],ypoints[i]);
-    }
-    glEnd();
-
-    // draw a spinning circle
-    double time = Clock.GetElapsedTime();
-    circle(0.5*cos(time),0.5*sin(time),0.1);
-    }}}*/
-
     // cerr << 1/App.GetFrameTime() << endl;
     double dt = App.GetFrameTime();
     for(vector<Ball>::iterator j=balls.begin();j!=balls.end();j++){
@@ -159,7 +129,6 @@ int main()
       j->move(dt);
       j->draw(0.5,0.6,0.9);
     }
-
     App.Display();
   }
   //}}}
@@ -215,7 +184,7 @@ void Ball::move(double dt){
   double g = 0.;
   #endif
   #ifdef frictionOn
-  double c = 1.;  // friction coefficient
+  double c = 0.2;  // friction coefficient
   #else
   double c = 0.;
   #endif
@@ -281,8 +250,8 @@ void collision(Ball& a, Ball& b){
 }
 //}}}
 
-double f(double x){
-  return exp(-pow(x,2));
+double lin(double t0, double t1, double t){
+  return t0 * t + t1 * (1-t);
 }
 
 void circle(double x, double y, double r){
