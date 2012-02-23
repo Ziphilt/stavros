@@ -20,15 +20,15 @@ double castFloat(int);
 //{{{ Main
 int main()
 {
-  sf::Window App(sf::VideoMode(700, 700, 32), "Stavros Plotting");
+  sf::Window App(sf::VideoMode(1200, 700, 32), "Stavros Plotting");
   App.SetFramerateLimit(100);
   sf::Clock Clock;
 
   // set window coordinates
-  double x0 = -2.;
-  double x1 = 2.;
-  double y0 = -2.;
-  double y1 = 2.;
+  double x0 = -1.71429;
+  double x1 = 1.71429;
+  double y0 = -1.;
+  double y1 = 1.;
   double ratio = (y1-y0)/(x1-x0);
 
   //{{{ OpenGL stuff
@@ -92,7 +92,7 @@ int main()
     xpoints.clear();
     ypoints.clear();
     
-    time = 1;//Clock.GetElapsedTime();
+    time = Clock.GetElapsedTime();
     /*
     if (time > 11)
       time = 11;
@@ -101,8 +101,7 @@ int main()
     */
     for(int i = 0; i != samples; i++){
       double a = castFloat(i)/castFloat(samples);
-      // linear interpolation
-      double t = t0 * a + t1 * (1-a);
+      double t = lin(t0, t1, a);  
       xpoints.push_back(fx(t, time));
       ypoints.push_back(fy(t, time));
     }
@@ -126,8 +125,8 @@ int main()
     }
     glEnd();
     // draw a spinning circle
-    //double time = Clock.GetElapsedTime();
-    //circle(0.5*cos(time),0.5*sin(time),0.1);
+    glColor3d(1,1,1);
+    circle(cos(time*3),sin(time*3),0.01);
     //}}}
     App.Display();
   }
@@ -145,17 +144,23 @@ double f(double x){
   //return exp(-x*x/(2*a*a))/(a*sqrt(2*3.14159));
 }
 double fx(double t, double time){
+  //return t;
+  ///*
   double px0 = 0;
-  double px1 = 1 + time*cos(time*3);
+  double px1 = cos(time*3);
   double px2 = 1;
   return lin(lin(px0,px1,t),lin(px1,px2,t),t);
+  //*/
 }
 
 double fy(double t, double time){
+  //return sin(exp(time)*t);
+  ///*
   double py0 = 0;
-  double py1 = 1 + time*sin(time*3);
+  double py1 = sin(time*3);
   double py2 = 1;
   return lin(lin(py0,py1,t),lin(py1,py2,t),t);
+  //*/
 }
 
 double lin(double t0, double t1, double t){
