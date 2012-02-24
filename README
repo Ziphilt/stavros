@@ -7,7 +7,8 @@ Dependencies
   OpenGL
   Chipmunk
     depends:
-      libxmu
+      libxmu-dev
+      libxi-dev
       GLUT
       cmake
     install:
@@ -15,3 +16,4 @@ Dependencies
       cmake .
       make
       sudo make install
+      sudo ldconfig
