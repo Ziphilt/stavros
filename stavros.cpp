@@ -1,5 +1,6 @@
 //{{{ Includes
 #include <SFML/Graphics.hpp>
+#include <chipmunk/chipmunk.h>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -9,58 +10,40 @@ using std::vector;
 //}}}
 
 //{{{ Declarations
-struct Vect{
-  Vect();
-  Vect(double, double);
-  double x;
-  double y;
-};
-
-struct Ball{
-  Ball();
-  Ball(double,double,double,double,double,double);
-  double m;
-  double r;
-  Vect p;
-  Vect v;
-  void draw(double, double, double);
-  void move(double);
-  void collideWalls();
-};
-
 double lin(double, double, double);
-void circle(double, double, double);
+void circle(cpVect, double, double);
 double castFloat(int);
-
-Vect fromPolar(double, double);
-Vect vectAdd(const Vect&, const Vect&);
-Vect negate(const Vect&);
-Vect rotate(const Vect&, double);
-double resultant(const Vect&);
-void collision(Ball&, Ball&);
-#define elasticOn
-//#define gravityOn
-//#define frictionOn
 //}}}
 
 //{{{ Main
 int main()
 {
-  sf::Window App(sf::VideoMode(700, 700, 32), "Stavros");
+  sf::Window App(sf::VideoMode(680, 680, 32), "Stavros");
   App.SetFramerateLimit(100);
   sf::Clock Clock;
 
   // set window coordinates
-  double x0 = 0.;
-  double x1 = 2.;
-  double y0 = 0.;
-  double y1 = 2.;
+  double x0 = -20.;
+  double x1 = 20.;
+  double y0 = -20.;
+  double y1 = 20.;
   double ratio = (y1-y0)/(x1-x0);
-                           //m,r,  p,      v
-  vector<Ball> balls = {Ball(1,0.1,1.1,1.1,1,-1), Ball(1,0.1,1.3,1.3,1,-1), Ball(1,0.1,1.5,1.5,1,-1), Ball(1,0.1,1.7,1.7,1,-1),
-                        Ball(1,0.1,1.1,0.9,1,-1), Ball(1,0.1,1.3,0.7,1,-1), Ball(1,0.1,1.5,0.5,1,-1), Ball(1,0.1,0.3,0.3,1,-1),
-                        Ball(1,0.05,0.3,0.3,-1,1), Ball(1,0.05,0.5,0.5,-1,1), Ball(1,0.05,0.7,0.7,-1,1), Ball(1,0.05,0.9,0.9,-1,1),
-                        /*Ball(10,0.2,0.5,1.5,0.3,-0.3)*/};
+  
+  cpSpace* space = cpSpaceNew();
+  cpSpaceSetGravity(space, cpv(0,-100));
+  cpShape *ground1 = cpSegmentShapeNew(space->staticBody, cpv(-20, 5), cpv(0, 0), 0);
+  cpShapeSetFriction(ground1, 1);
+  cpSpaceAddShape(space, ground1);
+  cpShape *ground2 = cpSegmentShapeNew(space->staticBody, cpv(0, 0), cpv(20, 5), 0);
+  cpShapeSetFriction(ground2, 1);
+  cpSpaceAddShape(space, ground2);
+  cpFloat radius = 5;
+  cpFloat mass = 1;
+  cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
+  cpBody *ballBody = cpSpaceAddBody(space, cpBodyNew(mass, moment));
+  cpBodySetPos(ballBody, cpv(7, 15));
+  cpShape *ballShape = cpSpaceAddShape(space, cpCircleShapeNew(ballBody, radius, cpvzero));
+  cpShapeSetFriction(ballShape, 0.7);
 
   //{{{ OpenGL stuff
   glMatrixMode(GL_PROJECTION);
@@ -70,15 +53,22 @@ int main()
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glClearColor(0., 0., 0., 0.);
+  // antialiasing
+  glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_POINT_SMOOTH);
+
+	glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+	glHint(GL_POINT_SMOOTH_HINT, GL_DONT_CARE);
+	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   //}}}
 
   //{{{ Main Loop
-  while (App.IsOpened())
-  {
+  while (App.IsOpened()){
     //{{{ Event processing 
     sf::Event Event;
-    while (App.GetEvent(Event))
-    {
+    while (App.GetEvent(Event)){
       if (Event.Type == sf::Event::Closed)
           App.Close();
       if ((Event.Type == sf::Event::KeyPressed) && (Event.Key.Code == sf::Key::Escape))
@@ -114,153 +104,52 @@ int main()
 
     // cerr << 1/App.GetFrameTime() << endl;
     double dt = App.GetFrameTime();
-    for(vector<Ball>::iterator j=balls.begin();j!=balls.end();j++){
-      //int i = std::distance(balls.begin(),p);
-      //cerr << i << j->m << endl;
-      for(vector<Ball>::iterator q=balls.begin();q!=balls.end();q++){
-        if (j != q){ // if they are not the same ball
-          double dp = resultant(vectAdd(q->p, negate(j->p)));
-          if (dp < j->r + q->r){
-            collision(*j,*q);
-          }
-        }
-      }
-      j->collideWalls();
-      j->move(dt);
-      j->draw(0.5,0.6,0.9);
-    }
+    
+    cpSpaceStep(space,dt);
+    cpVect pos = cpBodyGetPos(ballBody);
+    glColor3d(1,1,1);
+    glBegin(GL_LINE_STRIP);
+    glVertex2d(-20,5);
+    glVertex2d(0,0);
+    glVertex2d(20,5);
+    glEnd();
+    circle(pos, cpBodyGetAngle(ballBody), radius);
+
     App.Display();
   }
   //}}}
 
+  cpShapeFree(ballShape);
+  cpBodyFree(ballBody);
+  cpShapeFree(ground1);
+  cpShapeFree(ground2);
+  cpSpaceFree(space);
   return EXIT_SUCCESS;
 }
 //}}}
 
 //{{{ Functions
-
-//{{{ Vect
-Vect::Vect(): x(0), y(0){}
-
-Vect::Vect(double xi, double yi): x(xi), y(yi){}
-
-Vect negate(const Vect& v){
-  Vect a(-v.x, -v.y);
-  return a;
-}
-
-Vect rotate(const Vect& v, double t){
-  Vect a(v.x * cos(t) - v.y * sin(t), v.x * sin(t) + v.y * cos(t));
-  return a;
-}
-
-double resultant(const Vect& v){
-  return sqrt(v.y*v.y + v.x*v.x);
-}
-
-Vect fromPolar(double r, double t){
-  Vect a(r * cos(t), r * sin(t));
-  return a;
-}
-
-Vect vectAdd(const Vect& v0, const Vect& v1){
-  Vect a(v0.x + v1.x, v0.y + v1.y);
-  return a;
-}
-//}}}
-
-//{{{ Ball
-Ball::Ball(){}
-Ball::Ball(double mi,double ri,double px,double py,double vx,double vy): m(mi),r(ri),p(px,py),v(vx,vy) {}
-void Ball::draw(double red, double green, double blue){
-  glColor3d(red, green, blue);
-  circle(p.x,p.y,r);
-}
-
-void Ball::move(double dt){
-  #ifdef gravityOn
-  double g = -2.; // gravitational constant
-  #else
-  double g = 0.;
-  #endif
-  #ifdef frictionOn
-  double c = 0.2;  // friction coefficient
-  #else
-  double c = 0.;
-  #endif
-  p.x = p.x + dt * v.x - dt*dt*c*v.x/2;
-  v.x = v.x - dt * c*v.x;
-  p.y = p.y + dt * v.y + dt*dt*(g - c*v.y)/2;
-  v.y = v.y + dt * (g - c*v.y);
-}
-
-void Ball::collideWalls(){
-  // coefficient of restitution
-  #ifdef elasticOn
-  double c = 1;
-  #else
-  double c = 0.9;
-  #endif
-  if (p.y - r <= 0){
-    /*#ifdef gravityOn
-      if (abs(v.y) <= 0.001)
-        v.y = 0;
-      else v.y = -v.y*c;
-    //#endif*/
-    v.y = -v.y*c;
-    p.y = r;
-  }
-  if (p.x - r <= 0){
-    v.x = -v.x*c;
-    p.x = r;
-  }
-  if (p.y + r >= 2){
-    v.y = -v.y*c;
-    p.y = 2 - r;
-  }
-  if (p.x + r >= 2){
-    v.x = -v.x*c;
-    p.x = 2 - r;
-  }
-}
-
-void collision(Ball& a, Ball& b){
-  Vect dp = vectAdd(b.p, negate(a.p));
-  double tc = atan2(dp.y, dp.x);
-  a.v = rotate(a.v, -tc);
-  b.v = rotate(b.v, -tc);
-  double M = a.m + b.m;
-  #ifdef elasticOn
-  double c = 1;
-  #else
-  double c = 0.9;
-  #endif
-  double avf = (a.m*a.v.x + b.m*b.v.x + b.m*c*(b.v.x - a.v.x)) / M;
-  double bvf = (b.m*b.v.x + a.m*a.v.x + a.m*c*(a.v.x - b.v.x)) / M;
-  a.v.x = avf;
-  b.v.x = bvf;
-  a.v = rotate(a.v, tc);
-  b.v = rotate(b.v, tc);
-  // move the balls apart
-  double d = resultant(dp) - a.r - b.r;
-  Vect adjust_a = fromPolar(d * b.m / M, tc);
-  Vect adjust_b = fromPolar(-d * a.m / M, tc);
-  a.p = vectAdd(a.p, adjust_a);
-  b.p = vectAdd(b.p, adjust_b);
-}
-//}}}
-
 double lin(double t0, double t1, double t){
   return t0 * t + t1 * (1-t);
 }
 
-void circle(double x, double y, double r){
-//  glColor3d(8., .4, 0.);
-  glBegin(GL_POLYGON);
+void circle(cpVect pos, double angle, double radius){
+  double x = pos.x;
+  double y = pos.y;
+  glColor3d(0.3,0,0);
+  glBegin(GL_TRIANGLE_FAN);
   for(int t = 0; t != 64; t++){
     double a = t * 0.098175;
-    glVertex2d(x+r*cos(a),y+r*sin(a));
+    glVertex2d(x+radius*cos(a),y+radius*sin(a));
   }
+  glEnd();
+  glColor3d(1,0,0);
+  glBegin(GL_LINE_STRIP);
+  for(int t = 0; t != 65; t++){
+    double a = t * 0.098175;
+    glVertex2d(x+radius*cos(a + angle),y+radius*sin(a + angle));
+  }
+  glVertex2d(x,y);
   glEnd();
 }
 
