@@ -56,12 +56,14 @@ int main()
   bool down  = false;
   bool a     = false;
   bool e     = false;
-  cpVect thrust;
+  cpVect thrust1;
+  cpVect thrust2;
   cpVect leftThrust = cpv(-force,0);
   cpVect rightThrust = cpv(force,0);
   cpVect upThrust = cpv(0,force);
   cpVect downThrust = cpv(0,-force); 
-  double angThrust;
+  double angThrust1; 
+  double angThrust2;
   double torque = 10;
   double aTorque = torque;
   double eTorque = -torque;
@@ -89,11 +91,18 @@ int main()
   cpFloat radius = 1;
   cpFloat mass = 1;
   cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
-  cpBody* ballBody = cpSpaceAddBody(space, cpBodyNew(mass, moment));
-  cpBodySetPos(ballBody, cpv(0, -8));
-  cpShape* ballShape = cpSpaceAddShape(space, cpCircleShapeNew(ballBody, radius, cpvzero));
-  cpShapeSetFriction(ballShape, 1.);
-  cpShapeSetElasticity(ballShape, 0.5);
+  cpBody* ballBody1 = cpSpaceAddBody(space, cpBodyNew(mass, moment));
+  cpBodySetPos(ballBody1, cpv(0, -8));
+  cpShape* ballShape1 = cpSpaceAddShape(space, cpCircleShapeNew(ballBody1, radius, cpvzero));
+  cpShapeSetFriction(ballShape1, 1.);
+  cpShapeSetElasticity(ballShape1, 0.5);
+
+  cpBody* ballBody2 = cpSpaceAddBody(space, cpBodyNew(mass, moment));
+  cpBodySetPos(ballBody2, cpv(5, -9));
+  cpShape* ballShape2 = cpSpaceAddShape(space, cpCircleShapeNew(ballBody2, radius, cpvzero));
+  cpShapeSetFriction(ballShape2, 1.);
+  cpShapeSetElasticity(ballShape2, 0.5);
+
   
   for(int t = 0; t != circleSamples*2 + 2; t+=2){
     double a = t * M_PI / (double)circleSamples;
@@ -167,18 +176,21 @@ int main()
     glVertex2d(32.,0.);
     glEnd();
     }}}*/
-    //cpVect appliedForce = cpBodyGetForce(ballBody);
-    /*
-    thrust = leftThrust*(cpFloat)left + rightThrust*(cpFloat)right + upThrust*(cpFloat)up + downThrust*(cpFloat)down;
-    Thrusters t((double)left,(double)right,(double)up,(double)down,(double)a,(double)e);
-    angThrust = aTorque*(cpFloat)a + eTorque*(cpFloat)e;
-    */
-    Thrusters t = AI(ballBody);
-    thrust = leftThrust*t.left + rightThrust*t.right + upThrust*t.up + downThrust*t.down;
-    angThrust = aTorque*t.rotL + eTorque*t.rotR;
-    cpBodyResetForces(ballBody);
-    cpBodyApplyForce(ballBody, cpvrotate(thrust, ballBody->rot), cpvzero);
-    cpBodySetTorque(ballBody, angThrust);
+    //cpVect appliedForce = cpBodyGetForce(ballBody1);
+
+    Thrusters t1 = AI(ballBody1);
+    thrust1 = leftThrust*t1.left + rightThrust*t1.right + upThrust*t1.up + downThrust*t1.down;
+    angThrust1 = aTorque*t1.rotL + eTorque*t1.rotR;
+    cpBodyResetForces(ballBody1);
+    cpBodyApplyForce(ballBody1, cpvrotate(thrust1, ballBody1->rot), cpvzero);
+    cpBodySetTorque(ballBody1, angThrust1);
+    
+    thrust2 = leftThrust*(cpFloat)left + rightThrust*(cpFloat)right + upThrust*(cpFloat)up + downThrust*(cpFloat)down;
+    Thrusters t2((double)left,(double)right,(double)up,(double)down,(double)a,(double)e);
+    angThrust2 = aTorque*(cpFloat)a + eTorque*(cpFloat)e;
+    cpBodyResetForces(ballBody2);
+    cpBodyApplyForce(ballBody2, cpvrotate(thrust2, ballBody2->rot), cpvzero);
+    cpBodySetTorque(ballBody2, angThrust2);
 
     // cerr << 1/App.GetFrameTime() << endl;
     double dt = App.GetFrameTime();
@@ -197,14 +209,17 @@ int main()
     glVertex2d(dest.x,dest.y + 2);
     glVertex2d(dest.x,dest.y + 3);
     glEnd();
-    circle(cpBodyGetPos(ballBody), cpBodyGetAngle(ballBody), radius, t);
+    circle(cpBodyGetPos(ballBody1), cpBodyGetAngle(ballBody1), radius, t1);
+    circle(cpBodyGetPos(ballBody2), cpBodyGetAngle(ballBody2), radius, t2);
 
     App.Display();
   }
   //}}}
 
-  cpShapeFree(ballShape);
-  cpBodyFree(ballBody);
+  cpShapeFree(ballShape1);
+  cpBodyFree(ballBody1);
+  cpShapeFree(ballShape2);
+  cpBodyFree(ballBody2);
   cpShapeFree(wall0);
   cpShapeFree(wall1);
   cpShapeFree(wall2);
@@ -224,9 +239,9 @@ Thrusters AI(cpBody* b){
   // thruster setting appropriate for opposing gravity
   double gravT = -gravity*m/force;
   cpVect pos = cpBodyGetPos(b);
-  //double ang = cpBodyGetAngle(b);
+  double ang = cpBodyGetAngle(b);
   cpVect vel = cpBodyGetVel(b);
-  //double angVel = cpBodyGetAngVel(b);
+  double angVel = cpBodyGetAngVel(b);
   Thrusters t(0,0,0,0,0,0);
   cpVect d = cpv(dest.x - pos.x, dest.y - pos.y);
   // acceleration required to stop at dest
@@ -234,6 +249,10 @@ Thrusters AI(cpBody* b){
   double err = 0.1;
   double k = 4;
   double damp = 0.4;
+
+  // control angle
+  double rot = cpfclamp(-k*ang - damp*angVel,-1,1);
+  (rot > 0) ? t.rotL = rot : t.rotR = -rot;
 
   // control x position
   if (abs(d.x) < err && abs(vel.x) < err){
