@@ -47,8 +47,10 @@ int main()
   double y1 = 10.;
   double ratio = (y1-y0)/(x1-x0);
 
-  bool a     = false;
-  bool e     = false;
+  // buttons pressed
+  bool a     = false; // left thrust
+  bool e     = false; // right thrust
+  bool o     = false; // autopilot
   cpVect thrust = cpv(0,force);
   cpVect playerLThrust;
   cpVect playerRThrust;
@@ -160,6 +162,7 @@ int main()
     }
     a     = App.GetInput().IsKeyDown(sf::Key::A);
     e     = App.GetInput().IsKeyDown(sf::Key::E);
+    o     = App.GetInput().IsKeyDown(sf::Key::O);
     //}}}
     
     App.SetActive();
@@ -184,8 +187,15 @@ int main()
     cpBodyApplyForce(aiBallBody, cpvrotate(aiRThrust, aiBallBody->rot), cpvrotate(cpv(radius,0), aiBallBody->rot));
    
     Thrusters tPlayer((double)a,(double)e); 
-    playerLThrust = thrust*(cpFloat)a;
-    playerRThrust = thrust*(cpFloat)e;
+    if (o) {
+      tPlayer = AI(playerBallBody);
+      playerLThrust = thrust*tPlayer.left;
+      playerRThrust = thrust*tPlayer.right;
+    }
+    else {
+      playerLThrust = thrust*(cpFloat)a;
+      playerRThrust = thrust*(cpFloat)e;
+    }
     cpBodyResetForces(playerBallBody);
     cpBodyApplyForce(playerBallBody, cpvrotate(playerLThrust, playerBallBody->rot), cpvrotate(cpv(-radius,0), playerBallBody->rot));
     cpBodyApplyForce(playerBallBody, cpvrotate(playerRThrust, playerBallBody->rot), cpvrotate(cpv(radius,0), playerBallBody->rot));
