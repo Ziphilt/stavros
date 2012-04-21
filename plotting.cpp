@@ -25,10 +25,10 @@ int main()
   sf::Clock Clock;
 
   // set window coordinates
-  double x0 = -1.71429;
-  double x1 = 1.71429;
-  double y0 = -1.;
-  double y1 = 1.;
+  double x0 = -2*3.14159;
+  double x1 = 2*3.14159;
+  double y0 = -3.14159;
+  double y1 = 3.14159;
   double ratio = (y1-y0)/(x1-x0);
 
   //{{{ OpenGL stuff
@@ -101,9 +101,9 @@ int main()
     */
     for(int i = 0; i != samples; i++){
       double a = castFloat(i)/castFloat(samples);
-      double t = lin(t0, t1, a);  
-      xpoints.push_back(fx(t, time));
-      ypoints.push_back(fy(t, time));
+      double t = lin(x0, x1, a);  
+      xpoints.push_back(t);
+      ypoints.push_back(f(t));
     }
 
     //{{{ draw axes
@@ -139,7 +139,9 @@ int main()
 //{{{ Functions
 
 double f(double x){
-  return sin(60*x);
+  //return fmod(x,3.14159);
+  //return 2*atan(tan(x/2)); //this appears to work
+  return tan(atan(x));
   //double a = t/5;
   //return exp(-x*x/(2*a*a))/(a*sqrt(2*3.14159));
 }

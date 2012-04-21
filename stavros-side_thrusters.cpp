@@ -7,6 +7,7 @@ using std::endl;
 #include <vector>
 using std::vector;
 #include <cmath>
+#include <algorithm>
 //}}}
 
 //{{{ Declarations
@@ -242,21 +243,22 @@ int main()
 //{{{ Functions
 Thrusters AI(cpBody* b){ 
   //cpVect pos = cpBodyGetPos(b);
-  double ang = cpBodyGetAngle(b);
+  double ang = 2*atan(tan(cpBodyGetAngle(b)/2)); // correction to make angle cyclic
   cpVect vel = cpBodyGetVel(b);
   double angVel = cpBodyGetAngVel(b);
   double m = cpBodyGetMass(b);
   Thrusters t(0,0);
-  double gravT = -gravity*m/(force*2);
-  t.left = gravT;
-  t.right = gravT;
-  /*
+  double gravT = cpfclamp(-gravity*m/(force*2*cos(ang)),0,1);
+  double limit = std::min(gravT, 1-gravT);
+
   double k = 4;
   double damp = 0.4;
 
   // control angle
-  double rot = cpfclamp(-k*ang - damp*angVel,-1,1);
-  */
+  double rot = cpfclamp(-k*ang - damp*angVel,-limit,limit);
+
+  t.left = gravT - rot;
+  t.right = gravT + rot;
 
   /*
   //double maxDownA = -force/m + gravity; // falling
